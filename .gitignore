@@ -1,1 +1,9 @@
-*.slx.r* 
+# Thư mục cache và build của Simulink
+slprj/
+work/
+
+# Các file lưu tạm (Autosave/Backup) của MATLAB
+*.asv
+*.m~
+*.mat~
+*.slx.autosave
