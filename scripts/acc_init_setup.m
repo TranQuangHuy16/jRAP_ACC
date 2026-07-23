@@ -19,4 +19,6 @@ Kp = 50;
 Ki = 0.1;
 Kd = 0;
 
+% --- Tham số Speed Controller 
+speed_tolerance = 0.5;   % Vùng sai số cho phép (km/h)
 disp('Đã tải thành công cấu hình môi trường ACC!');
