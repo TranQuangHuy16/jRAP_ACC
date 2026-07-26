@@ -19,6 +19,11 @@ Kp = 50;
 Ki = 0.1;
 Kd = 0;
 
-% --- Tham số Speed Controller 
+% --- Tham số Speed Controller
 speed_tolerance = 0.5;   % Vùng sai số cho phép (km/h)
+
+% --- Tham số cảm biến khoảng cách phía trước (Proximity Sensor) ---
+Sensor_FarRange_m = 40;   % Khoảng cách bắt đầu kêu (m)
+Sensor_NearRange_m = 3;   % Khoảng cách kêu liên tục/cường độ tối đa (m)
+
 disp('Đã tải thành công cấu hình môi trường ACC!');

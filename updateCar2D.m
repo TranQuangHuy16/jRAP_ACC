@@ -1,25 +1,69 @@
-function updateCar2D(position, currentSpeed, desiredSpeed, throttle, brake, leadPosition, leadPresent)
-% position     : m
-% currentSpeed : km/h
-% desiredSpeed : km/h
-% throttle     : 0 hoặc 1
-% brake        : 0 hoặc 1
-% leadPosition : m (vị trí xe phía trước)
-% leadPresent  : 0/1 - có xe phía trước hay không
+function updateCar2D(position, currentSpeed, desiredSpeed, throttle, brake, leadPosition, leadPresent, proximityLevel, simTime)
+% position       : m
+% currentSpeed   : km/h
+% desiredSpeed   : km/h
+% throttle       : 0 hoặc 1
+% brake          : 0 hoặc 1
+% leadPosition   : m (vị trí xe phía trước)
+% leadPresent    : 0/1 - có xe phía trước hay không
+% proximityLevel : 0..1 - mức độ gần vật cản phía trước (cảm biến)
+% simTime        : giây - thời gian mô phỏng hiện tại
 
 persistent fig ax roadTop roadBottom centerLine infoText statusText leadText
 persistent egoCar leadCar
 persistent gaugeArcLow gaugeArcMid gaugeArcHigh gaugeNeedle gaugeSpeedText gaugeMaxSpeed
 persistent lastDrawTic
 persistent leadEverAppeared
+persistent nextPulseTime pulseOn pulseOffTime
 
 LEAD_VISIBLE_CUTOFF_M = 400; % xe trước đi xa hơn mức này thì coi như đã khuất tầm nhìn
+
+PULSE_PERIOD_MAX = 1.0;   % giây - chu kỳ kêu khi vật cản còn xa
+PULSE_PERIOD_MIN = 0.08;  % giây - chu kỳ kêu khi vật cản rất gần (gần như liên tục)
+PULSE_ON_FRACTION = 0.3;  % tỉ lệ thời gian sáng/kêu trong mỗi chu kỳ
+TONE_FS = 8000;           % Hz - tần số lấy mẫu âm thanh
+TONE_FREQ_MIN = 600;      % Hz - cao độ tiếng bíp khi vật cản còn xa
+TONE_FREQ_MAX = 1400;     % Hz - cao độ tiếng bíp khi vật cản rất gần
 
 % Cho phép tắt hẳn animation khi chạy test tự động (đặt biến
 % ACC_DISABLE_ANIMATION = true trong base workspace trước khi sim) để
 % các kịch bản test không bị chậm vì vẽ đồ họa.
 if evalin('base', 'exist(''ACC_DISABLE_ANIMATION'',''var'') && ACC_DISABLE_ANIMATION')
     return;
+end
+
+% Cảm biến khoảng cách phía trước: càng gần vật cản thì bíp/nháy càng
+% dồn dập. Nhịp được tính theo simTime (thời gian mô phỏng), không phải
+% wall-clock, để không bị lệ thuộc vào tốc độ vẽ khung hình.
+if isempty(pulseOn)
+    pulseOn = false;
+    pulseOffTime = -Inf;
+end
+if proximityLevel <= 0
+    nextPulseTime = [];
+    pulseOn = false;
+else
+    period = PULSE_PERIOD_MAX - proximityLevel * (PULSE_PERIOD_MAX - PULSE_PERIOD_MIN);
+    if isempty(nextPulseTime)
+        % Vật cản vừa lọt vào tầm cảm biến - đợi 1 chu kỳ rồi mới bíp,
+        % không kêu ngay lập tức.
+        nextPulseTime = simTime + period;
+    elseif simTime >= nextPulseTime
+        freq = TONE_FREQ_MIN + proximityLevel * (TONE_FREQ_MAX - TONE_FREQ_MIN);
+        amp = 0.15 + proximityLevel * 0.65;
+        toneT = 0:(1/TONE_FS):(PULSE_ON_FRACTION * period);
+        try
+            sound(amp * sin(2*pi*freq*toneT), TONE_FS);
+        catch
+            % Bỏ qua nếu máy không có thiết bị âm thanh
+        end
+        pulseOn = true;
+        pulseOffTime = simTime + PULSE_ON_FRACTION * period;
+        nextPulseTime = simTime + period;
+    end
+end
+if pulseOn && simTime >= pulseOffTime
+    pulseOn = false;
 end
 
 GAUGE_MAX_SPEED = 140; % km/h, thang đo cố định của đồng hồ tốc độ
@@ -124,6 +168,7 @@ end
 
 % Di chuyển xe + đèn phanh + bụi khi phanh gấp
 updateCarGraphic(egoCar, position, carColor, brake > 0.5);
+setProxGlow(egoCar, proximityLevel, pulseOn);
 
 % Di chuyển / ẩn-hiện xe phía trước. Một khi xe trước đã từng xuất hiện,
 % vẫn tiếp tục hiển thị nó lái đi (kể cả khi leadPresent chuyển về false,
@@ -278,6 +323,12 @@ h.brakeGlow = rectangle(ax, 'Position', [-0.7 0.4 1.4 1.1], ...
     'Curvature', [1 1], 'FaceColor', [1 0.2 0.2], 'FaceAlpha', 0.35, ...
     'EdgeColor', 'none', 'Parent', h.tf, 'Visible', 'off');
 
+% Đèn báo cảm biến khoảng cách phía trước (nháy ở cản trước, gần
+% headlight), màu chuyển xanh->vàng->đỏ và nhấp nháy theo proximityLevel
+h.proxGlow = rectangle(ax, 'Position', [7.6 -0.2 1.0 1.0], ...
+    'Curvature', [1 1], 'FaceColor', [0.15 0.75 0.20], 'FaceAlpha', 0.6, ...
+    'EdgeColor', 'none', 'Parent', h.tf, 'Visible', 'off');
+
 % Bụi/khói phía sau khi phanh gấp
 h.smoke = gobjects(1, 3);
 smokeOffsets = [-1.3 0.35; -2.0 0.55; -1.1 0.75];
@@ -305,5 +356,29 @@ else
     set(h.tailLight, 'FaceColor', [0.40 0.00 0.00]);
     set(h.brakeGlow, 'Visible', 'off');
     set(h.smoke, 'Visible', 'off');
+end
+end
+
+function setProxGlow(h, level, on)
+% Bật/tắt và tô màu đèn cảm biến khoảng cách theo mức độ gần vật cản.
+if on && level > 0
+    set(h.proxGlow, 'FaceColor', proxLevelColor(level), 'Visible', 'on');
+else
+    set(h.proxGlow, 'Visible', 'off');
+end
+end
+
+function c = proxLevelColor(level)
+% Nội suy màu xanh (an toàn) -> vàng -> đỏ (nguy hiểm) theo proximityLevel.
+level = max(0, min(1, level));
+green  = [0.15 0.75 0.20];
+yellow = [0.95 0.75 0.10];
+red    = [0.90 0.15 0.10];
+if level <= 0.5
+    t = level / 0.5;
+    c = green + t * (yellow - green);
+else
+    t = (level - 0.5) / 0.5;
+    c = yellow + t * (red - yellow);
 end
 end

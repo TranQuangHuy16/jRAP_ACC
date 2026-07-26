@@ -162,10 +162,70 @@ catch ME
     results(end+1) = struct('name','PBI-19 Emergency brake overrides normal control','passed',false,'detail',detail);
 end
 
+%% PBI-21: ProximitySensor_Module standalone - proximity level tracks distance to lead vehicle
+try
+    mdl = 'ProximitySensor_Module';
+    if ~bdIsLoaded(mdl); load_system(mdl); end
+    % ExternalInput matrices are double; temporarily relax the boolean
+    % LeadPresent port so it accepts the double test input (discarded by
+    % the close/reload at the end of this script).
+    set_param([mdl '/LeadPresent'], 'OutDataTypeStr', 'double');
+
+    % Scenario A: distance steps from 50m to 2m at t=1s (mirrors PBI-19's
+    % EmergencyBrake_Module trigger case) - proximity must saturate near
+    % max, consistent with EmergencyBrake_Module also triggering at 2m.
+    % Columns: LeadPresent, Distance
+    proxStepInput = [0 1 50; 1 1 50; 1 1 2; 2 1 2]; %#ok<NASGU>
+    assignin('base','prox_step_input', proxStepInput);
+    set_param(mdl,'SimulationCommand','update');
+    outA = sim(mdl,'StopTime','2','SaveOutput','on','SaveFormat','Dataset', ...
+        'LoadExternalInput','on','ExternalInput','prox_step_input');
+    proxLevelA = outA.yout{1}.Values.Data(end);
+    passedA = proxLevelA >= 0.95 && proxLevelA <= 1.0;
+
+    % Scenario B: safe far distance (200m, beyond Sensor_FarRange_m) -> silent
+    proxFarInput = [0 1 200; 1 1 200]; %#ok<NASGU>
+    assignin('base','prox_far_input', proxFarInput);
+    set_param(mdl,'SimulationCommand','update');
+    outB = sim(mdl,'StopTime','1','SaveOutput','on','SaveFormat','Dataset', ...
+        'LoadExternalInput','on','ExternalInput','prox_far_input');
+    proxLevelB = outB.yout{1}.Values.Data(end);
+    passedB = proxLevelB == 0;
+
+    % Scenario C: mid-range distance (20m) -> partial/proportional level
+    proxMidInput = [0 1 20; 1 1 20]; %#ok<NASGU>
+    assignin('base','prox_mid_input', proxMidInput);
+    set_param(mdl,'SimulationCommand','update');
+    outC = sim(mdl,'StopTime','1','SaveOutput','on','SaveFormat','Dataset', ...
+        'LoadExternalInput','on','ExternalInput','prox_mid_input');
+    proxLevelC = outC.yout{1}.Values.Data(end);
+    passedC = proxLevelC >= 0.4 && proxLevelC <= 0.7;
+
+    % Scenario D: no lead vehicle -> gated off even at a close distance
+    proxGatedInput = [0 0 2; 1 0 2]; %#ok<NASGU>
+    assignin('base','prox_gated_input', proxGatedInput);
+    set_param(mdl,'SimulationCommand','update');
+    outD = sim(mdl,'StopTime','1','SaveOutput','on','SaveFormat','Dataset', ...
+        'LoadExternalInput','on','ExternalInput','prox_gated_input');
+    proxLevelD = outD.yout{1}.Values.Data(end);
+    passedD = proxLevelD == 0;
+
+    passed = passedA && passedB && passedC && passedD;
+    results(end+1) = struct('name','PBI-21 Proximity sensor tracks distance to lead vehicle', ...
+        'passed', passed, 'detail', sprintf(['Saturated(2m)=%.3f(%d) Silent(200m)=%.3f(%d) ' ...
+        'Partial(20m)=%.3f(%d) Gated(noLead,2m)=%.3f(%d)'], ...
+        proxLevelA, passedA, proxLevelB, passedB, proxLevelC, passedC, proxLevelD, passedD));
+catch ME
+    detail = ME.message;
+    if isprop(ME,'cause'); for ci=1:numel(ME.cause); detail = [detail ' | CAUSE: ' ME.cause{ci}.message]; end; end %#ok<AGROW>
+    results(end+1) = struct('name','PBI-21 Proximity sensor tracks distance to lead vehicle','passed',false,'detail',detail);
+end
+
 %% Restore LeadVehicle_Module / EmergencyBrake_Module to original saved state (discard test-only edits)
 try
     close_system('LeadVehicle_Module', 0); load_system('LeadVehicle_Module');
     close_system('EmergencyBrake_Module', 0); load_system('EmergencyBrake_Module');
+    close_system('ProximitySensor_Module', 0); load_system('ProximitySensor_Module');
     set_param('ACC_Main','SimulationCommand','update');
 catch
 end
