@@ -14,6 +14,12 @@ codegen/
 *.slx.original
 *.mdl.autosave
 
+# Backup tự động Simulink tạo khi lưu model vốn được lưu ở bản cũ hơn.
+# ĐÂY KHÔNG PHẢI BẢN EXPORT: nội dung bên trong là phiên bản TRƯỚC khi
+# sửa. Bản export thật cho R2025a nằm ở export_R2025a/, sinh bằng
+# scripts/export_r2025a.m
+*.slx.r2025a
+
 # Biến môi trường / cấu hình cục bộ - có thể chứa thông tin nhạy cảm
 .env
 .env.*

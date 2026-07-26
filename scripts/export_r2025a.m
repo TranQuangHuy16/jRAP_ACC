@@ -2,17 +2,22 @@ function export_r2025a(varargin)
 % EXPORT_R2025A  Sinh lại toàn bộ bản R2025a của các model trong dự án.
 %
 % Team còn thành viên dùng MATLAB R2025a, trong khi một số model đã được
-% lưu ở R2026a. Mỗi model vì thế có hai bản: bản chính <tên>.slx và bản
-% export <tên>.slx.r2025a. Làm tay thì chắc chắn có lúc quên, dẫn tới bản
-% R2025a lệch khỏi bản chính mà không ai biết.
+% lưu ở R2026a. Làm tay thì chắc chắn có lúc quên, dẫn tới bản R2025a lệch
+% khỏi bản chính mà không ai biết.
+%
+% Kết quả ghi vào thư mục export_R2025a/ với đuôi .slx bình thường, nên
+% người dùng R2025a mở thẳng được, không phải đổi tên gì cả.
+%
+% QUAN TRỌNG - đừng nhầm với <tên>.slx.r2025a:
+%   Đó KHÔNG phải bản export. Đó là backup tự động Simulink tạo ra khi ta
+%   lưu một model vốn được lưu lần cuối ở bản cũ hơn, và nó chứa nội dung
+%   TRƯỚC khi sửa. Ai đổi tên file đó ra dùng là đang chạy model lỗi thời.
+%   Vì vậy thư mục đích ở đây phải khác, tránh hai cơ chế ghi đè lẫn nhau.
 %
 % Chạy script này sau mỗi lần sửa model, TRƯỚC khi commit:
 %   startup
 %   export_r2025a          % sinh lại tất cả
 %   export_r2025a('check') % chỉ kiểm tra bản nào đã cũ, không ghi đè
-%
-% Người dùng R2025a: chép <tên>.slx.r2025a thành <tên>.slx trong bản làm
-% việc của mình (đừng commit đè lên bản chính).
 
 TARGET_RELEASE = 'R2025A';
 
@@ -21,13 +26,18 @@ projectRoot = fileparts(fileparts(mfilename('fullpath')));
 
 models = [ dir(fullfile(projectRoot, '*.slx')) ; dir(fullfile(projectRoot, 'models', '*.slx')) ];
 
-fprintf('=== Export sang %s ===\n', TARGET_RELEASE);
+exportDir = fullfile(projectRoot, 'export_R2025a');
+if ~checkOnly && ~isfolder(exportDir)
+    mkdir(exportDir);
+end
+
+fprintf('=== Export sang %s (-> export_R2025a/) ===\n', TARGET_RELEASE);
 nStale = 0; nOk = 0; nFail = 0;
 
 for i = 1:numel(models)
     srcPath = fullfile(models(i).folder, models(i).name);
-    dstPath = [srcPath '.r2025a'];
     [~, shortName] = fileparts(models(i).name);
+    dstPath = fullfile(exportDir, models(i).name);
 
     dst = dir(dstPath);
     isStale = isempty(dst) || dst.datenum < models(i).datenum;
@@ -57,18 +67,13 @@ for i = 1:numel(models)
             load_system(srcPath);
         end
 
-        % Simulink.exportToVersion chỉ chấp nhận tên file kết thúc bằng
-        % .slx/.mdl, nên không ghi thẳng ra <tên>.slx.r2025a được. Xuất ra
-        % thư mục tạm với tên hợp lệ rồi mới đổi tên về đúng quy ước.
-        stagingFile = fullfile(tempdir, [shortName '.slx']);
-        if isfile(stagingFile); delete(stagingFile); end
-        Simulink.exportToVersion(shortName, stagingFile, TARGET_RELEASE);
-        movefile(stagingFile, dstPath, 'f');
+        if isfile(dstPath); delete(dstPath); end
+        Simulink.exportToVersion(shortName, dstPath, TARGET_RELEASE);
 
         if ~wasLoaded
             close_system(shortName, 0);
         end
-        fprintf('  [SINH  ] %-28s -> %s\n', shortName, [models(i).name '.r2025a']);
+        fprintf('  [SINH  ] %-28s -> export_R2025a/%s\n', shortName, models(i).name);
         nOk = nOk + 1;
     catch ME
         fprintf(2, '  [LỖI   ] %-28s %s\n', shortName, ME.message);

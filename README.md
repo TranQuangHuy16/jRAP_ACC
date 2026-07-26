@@ -15,17 +15,19 @@ phía trước và mô phỏng 2D trực quan.
 
 ### Nếu bạn dùng R2025a
 
-Mỗi model có kèm một bản export `<tên>.slx.r2025a`. Chép bản đó thành `<tên>.slx` trong thư mục làm việc
-của bạn (đừng commit đè lên bản chính).
+Dùng các model trong thư mục **`export_R2025a/`** — đuôi `.slx` bình thường, mở thẳng được.
 
-**Nếu bạn sửa model bằng R2026a, hãy sinh lại các bản export TRƯỚC khi commit:**
+> ⚠️ **Đừng dùng các file `<tên>.slx.r2025a`.** Đó **không phải** bản export. Đó là backup tự động do
+> Simulink tạo ra khi lưu một model vốn được lưu lần cuối ở bản cũ hơn, và nội dung bên trong là phiên bản
+> **trước khi sửa**. Ai đổi tên chúng ra dùng là đang chạy model lỗi thời mà không hề biết. Chúng đã được
+> đưa vào `.gitignore`.
+
+**Nếu bạn sửa model bằng R2026a, hãy sinh lại bản export TRƯỚC khi commit:**
 
 ```matlab
 export_r2025a('check')   % xem bản nào đã lỗi thời
-export_r2025a            % sinh lại tất cả
+export_r2025a            % sinh lại tất cả vào export_R2025a/
 ```
-
-Bỏ bước này là đồng đội dùng R2025a sẽ chạy phải phiên bản model cũ mà không hề biết.
 
 ---
 
@@ -146,18 +148,35 @@ Khai báo trong `scripts/acc_init_setup.m`:
 
 | Tham số | Giá trị | Ý nghĩa |
 |---|---|---|
-| `Sensor_FarRange_m` | 40 | Khoảng cách bắt đầu cảnh báo (m) — ✅ đang có tác dụng |
-| `Sensor_NearRange_m` | 3 | Khoảng cách cảnh báo cường độ tối đa (m) — ✅ đang có tác dụng |
-| `D_safe` | 20 | Khoảng cách an toàn tối thiểu (m) — ✅ đang có tác dụng |
-| `D_followBlend_m` | 60 | Khoảng cách vượt trên `D_safe` để trả hết về tốc độ đặt (m) — ✅ |
-| `k_closing` | 0.5 | Hệ số trừ theo tốc độ tiếp cận — ✅ |
-| `v_target` | 30 | Tốc độ mong muốn (m/s) — ⚠️ chưa nối |
-| `m`, `Cd`, `A`, `rho` | 1500 / 0.32 / 2.4 / 1.225 | Khối lượng và cản gió — ⚠️ chưa nối |
-| `Kp`, `Ki`, `Kd` | 50 / 0.1 / 0 | Tham số PID — ⚠️ chưa nối |
+| `a_throttle_mps2` | 2 | Gia tốc khi ga mở hết (m/s²) |
+| `a_brake_mps2` | 2 | Giảm tốc khi phanh hết (m/s²) |
+| `v_cruise_kmh` | 80 | Tốc độ đặt ban đầu (km/h) |
+| `v_cruise_lowered_kmh` | 40 | Tốc độ đặt sau khi người lái hạ xuống ở t=12s (km/h) |
+| `speed_tolerance` | 0.5 | Vùng sai số cho phép quanh tốc độ đặt (km/h) |
+| `D_noLead_m` | 1000 | Khoảng cách báo về khi không có xe phía trước (m) |
+| `D_emergency_m` | 8 | Khoảng cách kích hoạt phanh khẩn cấp (m) |
+| `D_safe` | 20 | Khoảng cách an toàn tối thiểu (m) |
+| `D_followBlend_m` | 60 | Khoảng cách vượt trên `D_safe` để trả hết về tốc độ đặt (m) |
+| `k_closing` | 0.5 | Hệ số trừ theo tốc độ tiếp cận |
+| `Sensor_FarRange_m` | 40 | Khoảng cách bắt đầu cảnh báo (m) |
+| `Sensor_NearRange_m` | 3 | Khoảng cách cảnh báo cường độ tối đa (m) |
+| `m`, `Cd`, `A`, `rho` | 1500 / 0.32 / 2.4 / 1.225 | Khối lượng và cản gió — ⚠️ **chưa nối**, xem bên dưới |
 
-> ⚠️ Các tham số đánh dấu "chưa nối" vẫn đang bị hardcode bên trong từng module (`VehicleDynamics_Module`,
-> `EmergencyBrake_Module`...), nên **sửa giá trị ở đây sẽ không có tác dụng**. Việc nối chúng cần sửa các
-> model đang lưu ở R2025a, nên đang chờ team thống nhất phiên bản MATLAB trước (mục S2.4 trong lộ trình).
+Tất cả tham số trên (trừ nhóm cuối) đều thực sự được model sử dụng — sửa giá trị ở đây là đổi được hành vi.
+Kiểm chứng bằng:
+
+```matlab
+Simulink.findVars('ACC_Main','SearchReferencedModels',true)
+```
+
+> ⚠️ **`m`, `Cd`, `A`, `rho` chưa được nối** vì `VehicleDynamics_Module` hiện không mô hình hoá lực cản
+> gió: gia tốc là hằng số theo mức ga, không phụ thuộc vận tốc, nên xe không có tốc độ tới hạn. Muốn dùng
+> bốn tham số này phải **thêm khối** để tính `a = (F_ga − ½·ρ·Cd·A·v²)/m` — tức là đổi vật lý của model,
+> không phải đổi tham số. Đây là quyết định về sản phẩm, chưa thực hiện.
+
+**Quy ước:** mọi biến trong `acc_init_setup.m` phải được ít nhất một khối tham chiếu tới. Biến khai báo mà
+model không dùng còn tệ hơn là không có — người đọc tưởng sửa ở đây là đổi được hành vi, trong khi giá trị
+thật nằm hardcode trong khối.
 
 ---
 

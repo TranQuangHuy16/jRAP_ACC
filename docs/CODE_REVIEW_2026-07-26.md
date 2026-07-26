@@ -318,7 +318,7 @@ Bốn người đóng góp: `JustHungDEVer`, `TranQuangHuy16`, `thuongnguyenTN`,
 
 - [x] **S2.1** Đổi tên 9 khối `Model`…`Model8` → tên nghiệp vụ; cập nhật `run_acc_scenario_tests.m` và `EmergencyBrake_scenario.feature`
 - [x] **S2.2** **Xoá sạch algebraic loop** — nối 2 khối `Memory` (`Throttle Delay`/`Brake Delay`) đang bị bỏ không vào đường `EmergencyBrake → VehicleDynamics`. Đây đúng là ý đồ thiết kế ban đầu bị dở dang
-- [x] **S2.3** Thay 3 magic number trong `SpeedArbitration` bằng tham số có tên (`D_safe`, `D_followBlend_m`, `k_closing`); số biến workspace được model dùng thật: **2 → 5**
+- [x] **S2.3** Thay 3 magic number trong `SpeedArbitration` bằng tham số có tên (`D_safe`, `D_followBlend_m`, `k_closing`), sau đó nối tiếp 8 tham số nữa trong 6 module (nhóm A) và xoá 7 biến chết (nhóm C); số biến workspace được model dùng thật: **2 → 12**
 - [x] **S2.4** ~~Thống nhất một release MATLAB~~ → **Team quyết định giữ R2025a**. Thay vì hợp nhất phiên bản, đã tự động hoá việc sinh bản export bằng `scripts/export_r2025a.m`. Phát hiện lúc chạy: **8/11 model có bản R2025a thiếu hoặc lỗi thời**, riêng `ProximitySensor_Module` chưa hề có — người dùng R2025a khi đó không thể chạy dự án. Đã sinh lại đủ 11 bản
 - [x] **S2.5** Viết lại harness bằng `matlab.unittest` (`AccScenarioTest.m`), độc lập thứ tự chạy, tự khôi phục cờ Dirty, xuất JUnit XML
 - [ ] **S2.6** Gom tham số về Simulink Data Dictionary (`.sldd`) — hoãn, cần làm cùng lúc với việc nối tham số vào các module R2025a
@@ -401,6 +401,63 @@ Hai điểm nóng đã xử lý:
 - 17 biến `persistent` rời rạc → thuộc tính của hai đối tượng có vòng đời rõ ràng.
 
 Kiểm chứng: `checkcode` sạch, sim 12s **có bật animation** chạy tốt và tạo đúng cửa sổ, test vẫn 5/5.
+
+### 2026-07-27 — Nối tham số (nhóm A) và dọn biến chết (nhóm C)
+
+Sprint 3 dừng lại vì không đủ thời gian (S3.1/S3.2/S3.3 hoãn, S3.4 vốn không làm được do máy thiếu
+Simulink Coverage). Thay vào đó xử lý dứt điểm phần tham số.
+
+**Nhóm A — nối 1:1, giá trị giữ nguyên nên hành vi không đổi:**
+
+| Khối | Trước | Sau |
+|---|---|---|
+| `EmergencyBrake_Module/EmergencyDistance_m` | `8` | `D_emergency_m` |
+| `SpeedController_Module/Error_GT_0.5` | `0.5` | `speed_tolerance` |
+| `BrakeController_Module/Compare To Constant1` | `-0.5` | `-speed_tolerance` |
+| `VehicleDynamics_Module/acceleration` | `2` | `a_throttle_mps2` |
+| `VehicleDynamics_Module/Brake Deceleration Gain` | `2` | `a_brake_mps2` |
+| `DesiredSpeed_Module/Step` Before/After | `80` / `40` | `v_cruise_kmh` / `v_cruise_lowered_kmh` |
+| `DistanceCalculation_Module/Constant` | `1000` | `D_noLead_m` |
+
+Số biến workspace được model dùng thật: **5 → 12**. Test vẫn 5/5, số liệu không đổi.
+
+**Nhóm C — xoá 7 biến chết.** Ba trong số đó không chỉ chết mà còn **sai lệch**, ai tin vào chúng sẽ hiểu
+nhầm hệ thống:
+
+| Biến | Khai báo | Thực tế trong model |
+|---|---|---|
+| `D0` | 50 m | `LeadPosition_m` IC = **60** |
+| `v0_lead` | 15 m/s (=54 km/h) | `LeadSpeed_kmh` step = **50 km/h** |
+| `v0_ego` | 20 m/s | Integrator IC = **0** (xe khởi đầu đứng yên) |
+| `Kp`, `Ki`, `Kd` | 50 / 0.1 / 0 | **Không có bộ PID nào** trong toàn bộ 10 module. Cả SpeedController lẫn BrakeController đều là điều khiển đóng-mở |
+| `v_target` | 30 m/s (=108 km/h) | Tốc độ đặt thực tế 80→40 km/h |
+
+Đồng thời xoá một khối `Constant` mồ côi trong `DesiredSpeed_Module` (`Desired Speed (km/h)` = 80, output
+không nối vào đâu) — nó khiến người đọc tưởng đó là nguồn tốc độ đặt, trong khi nguồn thật là khối `Step`.
+
+**Lỗi tự phát hiện trong `startup.m`:** file được viết dưới dạng `function`, nên `acc_init_setup` chạy
+trong workspace của hàm và tham số **không hề tới được base workspace**. Từ Sprint 1 tới giờ nó vẫn có vẻ
+hoạt động là nhờ `PostLoadFcn` của `ACC_Main` và `evalin` trong `AccScenarioTest` bù lại. Đã chuyển thành
+script.
+
+### 2026-07-27 — Đính chính về các file `*.slx.r2025a`
+
+**`<tên>.slx.r2025a` không phải quy ước export của team — đó là tên file backup tự động của Simulink.** Khi
+lưu một model vốn được lưu lần cuối ở bản cũ hơn, Simulink tự tạo bản sao mang đúng tên đó, chứa nội dung
+**trước khi sửa**:
+
+```
+A copy of the original file 'VehicleDynamics_Module.slx' has been created because it was
+last saved in an earlier version of Simulink. To recover the original version, rename the
+file 'VehicleDynamics_Module.slx.r2025a' as 'VehicleDynamics_Module.slx'.
+```
+
+Nghĩa là các file `.r2025a` nằm trong repo từ trước tới nay chưa bao giờ là bản export của model hiện
+hành. Thành viên R2025a nào đổi tên chúng ra dùng đều đang chạy model lỗi thời.
+
+Script `export_r2025a.m` ban đầu cũng chọn nhầm đúng cái tên này nên hai cơ chế ghi đè lẫn nhau. Đã sửa:
+bản export thật nay nằm ở **`export_R2025a/<tên>.slx`** (đuôi `.slx` bình thường, mở thẳng được, không phải
+đổi tên). `*.slx.r2025a` đã được đưa vào `.gitignore` và gỡ khỏi Git.
 
 **Lưu ý:** `docs` từng nằm trong `.git/info/exclude`, nghĩa là mọi tài liệu trong thư mục này sẽ không bao
 giờ được commit. Đã gỡ dòng đó để báo cáo này chia sẻ được cho team.
