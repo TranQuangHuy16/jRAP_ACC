@@ -319,18 +319,20 @@ Bốn người đóng góp: `JustHungDEVer`, `TranQuangHuy16`, `thuongnguyenTN`,
 - [x] **S2.1** Đổi tên 9 khối `Model`…`Model8` → tên nghiệp vụ; cập nhật `run_acc_scenario_tests.m` và `EmergencyBrake_scenario.feature`
 - [x] **S2.2** **Xoá sạch algebraic loop** — nối 2 khối `Memory` (`Throttle Delay`/`Brake Delay`) đang bị bỏ không vào đường `EmergencyBrake → VehicleDynamics`. Đây đúng là ý đồ thiết kế ban đầu bị dở dang
 - [x] **S2.3** Thay 3 magic number trong `SpeedArbitration` bằng tham số có tên (`D_safe`, `D_followBlend_m`, `k_closing`); số biến workspace được model dùng thật: **2 → 5**
-- [ ] **S2.4** Thống nhất một release MATLAB, xoá `*.slx.r2025a` — **cần quyết định của team** (ai đang dùng R2025a?)
+- [x] **S2.4** ~~Thống nhất một release MATLAB~~ → **Team quyết định giữ R2025a**. Thay vì hợp nhất phiên bản, đã tự động hoá việc sinh bản export bằng `scripts/export_r2025a.m`. Phát hiện lúc chạy: **8/11 model có bản R2025a thiếu hoặc lỗi thời**, riêng `ProximitySensor_Module` chưa hề có — người dùng R2025a khi đó không thể chạy dự án. Đã sinh lại đủ 11 bản
 - [x] **S2.5** Viết lại harness bằng `matlab.unittest` (`AccScenarioTest.m`), độc lập thứ tự chạy, tự khôi phục cờ Dirty, xuất JUnit XML
 - [ ] **S2.6** Gom tham số về Simulink Data Dictionary (`.sldd`) — hoãn, cần làm cùng lúc với việc nối tham số vào các module R2025a
 
 ### Sprint 3 — Sẵn sàng production
 
-- [ ] **S3.1** Chuyển fixed-step solver + định nghĩa sample time
-- [ ] **S3.2** GitHub Actions chạy test tự động mỗi PR
+- [x] **S3.6** Refactor `updateCar2D.m`: 385 dòng → 55 dòng + package `+viz/` (3 lớp). Bỏ `evalin` mỗi
+      khung hình (nay 1 lần/lần sim), thay việc dựng vector sin mỗi tiếng bíp bằng `audioplayer` dựng sẵn
+- [ ] **S3.1** Chuyển fixed-step solver + định nghĩa sample time — *hoãn theo yêu cầu*
+- [ ] **S3.2** GitHub Actions chạy test tự động mỗi PR — *hoãn theo yêu cầu* (runner đã sẵn sàng: harness
+      xuất JUnit XML)
 - [ ] **S3.3** Model Advisor như một quality gate
 - [ ] **S3.4** Bật đo decision coverage
 - [ ] **S3.5** Traceability requirement ↔ model ↔ test (Requirements Toolbox)
-- [ ] **S3.6** Refactor `updateCar2D.m` (bỏ `evalin` mỗi frame, tách audio, đưa vào `+viz/`)
 
 ---
 
@@ -378,7 +380,27 @@ từ `EmergencyBrake` với `InitialCondition = 0`, nhưng output bỏ trống �
 rồi bỏ dở chưa nối. Chỉ cần chuyển `VehicleDynamics` sang lấy tín hiệu qua hai khối này là vòng đại số biến
 mất hoàn toàn.
 
-**Về file `*.slxc` và `.env`:** đã `git rm --cached` (gỡ khỏi Git, vẫn còn trên đĩa). Chưa commit.
+**Về file `*.slxc` và `.env`:** đã `git rm --cached` (gỡ khỏi Git, vẫn còn trên đĩa).
+
+### 2026-07-27 — Sprint 3 (phần đã chọn làm)
+
+**`updateCar2D.m`: 385 dòng → 55 dòng**, phần còn lại tách vào package `+viz/`:
+
+| File | Vai trò |
+|---|---|
+| `updateCar2D.m` | Điểm vào cho khối MATLAB Function: kiểm tra cờ tắt, giới hạn ~30fps, uỷ quyền |
+| `+viz/RoadScene.m` | Toàn bộ phần vẽ: đường, hai xe, HUD, đồng hồ tốc độ, camera |
+| `+viz/ProximityBeeper.m` | Nhịp bíp/nháy của cảm biến |
+| `+viz/isAnimationDisabled.m` | Đọc cờ `ACC_DISABLE_ANIMATION` |
+
+Hai điểm nóng đã xử lý:
+- `evalin('base',...)` từ **mỗi khung hình** → **1 lần cho mỗi lần sim** (nhận biết sim mới qua việc
+  `simTime` tụt xuống).
+- Mỗi tiếng bíp trước đây dựng lại một vector sin ngay trong vòng lặp solver → nay 8 mức cao độ được dựng
+  sẵn thành `audioplayer` và tái sử dụng.
+- 17 biến `persistent` rời rạc → thuộc tính của hai đối tượng có vòng đời rõ ràng.
+
+Kiểm chứng: `checkcode` sạch, sim 12s **có bật animation** chạy tốt và tạo đúng cửa sổ, test vẫn 5/5.
 
 **Lưu ý:** `docs` từng nằm trong `.git/info/exclude`, nghĩa là mọi tài liệu trong thư mục này sẽ không bao
 giờ được commit. Đã gỡ dòng đó để báo cáo này chia sẻ được cho team.

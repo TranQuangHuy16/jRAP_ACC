@@ -13,9 +13,19 @@ phía trước và mô phỏng 2D trực quan.
 | MATLAB / Simulink | **R2026a** (xem ghi chú bên dưới) |
 | Stateflow | cần cho khối `ACC_Mode_Status` |
 
-> **Ghi chú về phiên bản:** hiện repo còn lẫn model lưu ở R2025a và R2026a, kèm các file export
-> `*.slx.r2025a`. Nếu bạn dùng R2025a, hãy mở bản `.slx.r2025a` tương ứng. Việc thống nhất về một release
-> duy nhất nằm trong Sprint 2 của lộ trình refactor.
+### Nếu bạn dùng R2025a
+
+Mỗi model có kèm một bản export `<tên>.slx.r2025a`. Chép bản đó thành `<tên>.slx` trong thư mục làm việc
+của bạn (đừng commit đè lên bản chính).
+
+**Nếu bạn sửa model bằng R2026a, hãy sinh lại các bản export TRƯỚC khi commit:**
+
+```matlab
+export_r2025a('check')   % xem bản nào đã lỗi thời
+export_r2025a            % sinh lại tất cả
+```
+
+Bỏ bước này là đồng đội dùng R2025a sẽ chạy phải phiên bản model cũ mà không hề biết.
 
 ---
 
@@ -83,7 +93,12 @@ Xe phía trước chạy đều → phanh gấp → dừng ~2s → tăng tốc b
 ```
 ACC_Main.slx              Model tích hợp toàn hệ thống (điểm vào chính)
 startup.m                 Bootstrap môi trường — chạy đầu tiên
-updateCar2D.m             Hàm vẽ mô phỏng 2D (gọi từ Vehicle2DAnimation_Module)
+updateCar2D.m             Điểm vào của mô phỏng 2D (gọi từ Vehicle2DAnimation_Module)
+
++viz/                     Phần trình diễn của mô phỏng 2D
+  RoadScene.m               Vẽ đường, hai xe, HUD, đồng hồ tốc độ
+  ProximityBeeper.m         Nhịp bíp/nháy của cảm biến khoảng cách
+  isAnimationDisabled.m     Đọc cờ ACC_DISABLE_ANIMATION
 
 models/                   10 module con, đều là Model-reference của ACC_Main
   VehicleDynamics_Module      Động học xe: ga/phanh → gia tốc, vận tốc, vị trí
@@ -100,6 +115,7 @@ models/                   10 module con, đều là Model-reference của ACC_Ma
 scripts/
   acc_init_setup.m        Tham số môi trường ACC
   demo_front_sensor.m     Demo cảm biến khoảng cách
+  export_r2025a.m         Sinh lại các bản *.slx.r2025a cho thành viên dùng R2025a
   tests/
     *.feature             Đặc tả hành vi (Gherkin)
     run_acc_scenario_tests.m   Test harness
