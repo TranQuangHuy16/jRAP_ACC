@@ -440,6 +440,23 @@ trong workspace của hàm và tham số **không hề tới được base works
 hoạt động là nhờ `PostLoadFcn` của `ACC_Main` và `evalin` trong `AccScenarioTest` bù lại. Đã chuyển thành
 script.
 
+### 2026-07-27 — Đính chính: nhóm B bị huỷ, không phải hoãn
+
+Bản review ban đầu xếp `m`, `Cd`, `A`, `rho` vào "nhóm B — phải thêm khối mới nối được", tức là ngầm coi
+việc `VehicleDynamics_Module` không mô hình hoá lực cản gió là **một thiếu sót cần bù**.
+
+**Điều đó sai.** Product Owner xác nhận product backlog **không hề có yêu cầu nào về lực cản gió**. Mô hình
+gia tốc hằng số theo mức ga vì thế là thiết kế **đúng phạm vi**, không phải giản lược tạm thời. Nhóm B do
+đó bị **huỷ chứ không phải hoãn**, và bốn biến `m`, `Cd`, `A`, `rho` đã được xoá khỏi `acc_init_setup.m`.
+
+Ghi lại đây làm mốc: đề xuất "thêm lực cản gió cho thực tế hơn" sẽ là **mở rộng phạm vi ngoài backlog**,
+không phải sửa lỗi kỹ thuật.
+
+**Một điểm cần Product Owner xác nhận thêm:** product goal liệt kê *PID Controller* trong danh sách kiến
+thức mà nhóm muốn nghiên cứu, trong khi `SpeedController_Module` và `BrakeController_Module` hiện là điều
+khiển đóng-mở, và `Kp`/`Ki`/`Kd` đã bị xoá ở nhóm C vì không khối nào dùng. Nếu backlog có PBI về PID chưa
+làm, cần theo dõi ở backlog — không nên để lại tham số chết trong file cấu hình làm dấu.
+
 ### 2026-07-27 — Đính chính về các file `*.slx.r2025a`
 
 **`<tên>.slx.r2025a` không phải quy ước export của team — đó là tên file backup tự động của Simulink.** Khi

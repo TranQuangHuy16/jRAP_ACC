@@ -16,19 +16,13 @@ addpath(accRoot, fullfile(accRoot,'models'), fullfile(accRoot,'scripts'));
 clear accRoot
 
 %% Động học xe (VehicleDynamics_Module)
+% Gia tốc là hằng số theo mức ga, không phụ thuộc vận tốc. Đây là mô hình
+% ĐÚNG theo product backlog: backlog không có yêu cầu nào về lực cản gió,
+% nên model cố tình không mô phỏng nó. Vì vậy cũng không có khối lượng xe,
+% hệ số cản Cd, diện tích cản A hay mật độ không khí rho trong dự án này -
+% đừng thêm lại chúng nếu backlog không đổi.
 a_throttle_mps2 = 2;     % Gia tốc khi ga mở hết (m/s^2)
 a_brake_mps2 = 2;        % Giảm tốc khi phanh hết (m/s^2)
-
-% Khối lượng và cản gió: CHƯA được model dùng. VehicleDynamics_Module hiện
-% không mô hình hoá lực cản gió - gia tốc là hằng số theo mức ga, không phụ
-% thuộc vận tốc, nên xe không có tốc độ tới hạn. Muốn dùng bốn tham số dưới
-% đây phải thêm khối để tính a = (F_ga - 0.5*rho*Cd*A*v^2)/m, tức là đổi
-% vật lý của model chứ không phải đổi tham số. Giữ lại vì đó là hướng phát
-% triển đã thống nhất, KHÔNG phải vì model đang dùng.
-m = 1500;                % Khối lượng xe (kg)          [chưa nối]
-Cd = 0.32;               % Hệ số cản gió               [chưa nối]
-A = 2.4;                 % Diện tích cản gió (m^2)     [chưa nối]
-rho = 1.225;             % Mật độ không khí (kg/m^3)   [chưa nối]
 
 %% Tốc độ đặt của người lái (DesiredSpeed_Module)
 v_cruise_kmh = 80;         % Tốc độ đặt ban đầu (km/h)

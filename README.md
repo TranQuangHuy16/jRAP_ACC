@@ -160,23 +160,23 @@ Khai báo trong `scripts/acc_init_setup.m`:
 | `k_closing` | 0.5 | Hệ số trừ theo tốc độ tiếp cận |
 | `Sensor_FarRange_m` | 40 | Khoảng cách bắt đầu cảnh báo (m) |
 | `Sensor_NearRange_m` | 3 | Khoảng cách cảnh báo cường độ tối đa (m) |
-| `m`, `Cd`, `A`, `rho` | 1500 / 0.32 / 2.4 / 1.225 | Khối lượng và cản gió — ⚠️ **chưa nối**, xem bên dưới |
 
-Tất cả tham số trên (trừ nhóm cuối) đều thực sự được model sử dụng — sửa giá trị ở đây là đổi được hành vi.
+**Toàn bộ 12 tham số trên đều thực sự được model sử dụng** — sửa giá trị ở đây là đổi được hành vi.
 Kiểm chứng bằng:
 
 ```matlab
 Simulink.findVars('ACC_Main','SearchReferencedModels',true)
 ```
 
-> ⚠️ **`m`, `Cd`, `A`, `rho` chưa được nối** vì `VehicleDynamics_Module` hiện không mô hình hoá lực cản
-> gió: gia tốc là hằng số theo mức ga, không phụ thuộc vận tốc, nên xe không có tốc độ tới hạn. Muốn dùng
-> bốn tham số này phải **thêm khối** để tính `a = (F_ga − ½·ρ·Cd·A·v²)/m` — tức là đổi vật lý của model,
-> không phải đổi tham số. Đây là quyết định về sản phẩm, chưa thực hiện.
-
 **Quy ước:** mọi biến trong `acc_init_setup.m` phải được ít nhất một khối tham chiếu tới. Biến khai báo mà
 model không dùng còn tệ hơn là không có — người đọc tưởng sửa ở đây là đổi được hành vi, trong khi giá trị
 thật nằm hardcode trong khối.
+
+### Phạm vi: những thứ dự án cố tình KHÔNG mô phỏng
+
+`VehicleDynamics_Module` cho gia tốc hằng số theo mức ga, không phụ thuộc vận tốc. Đây là **thiết kế đúng
+theo product backlog**, không phải mô hình đơn giản hoá chờ hoàn thiện: backlog không có yêu cầu nào về lực
+cản gió. Vì vậy dự án không có khối lượng xe, `Cd`, `A` hay `rho` — **đừng thêm lại nếu backlog không đổi**.
 
 ---
 
