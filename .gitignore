@@ -1,9 +1,23 @@
 # Thư mục cache và build của Simulink
 slprj/
 work/
+codegen/
+
+# Cache biên dịch model-reference - sinh lại được, không commit
+*.slxc
 
 # Các file lưu tạm (Autosave/Backup) của MATLAB
 *.asv
 *.m~
 *.mat~
 *.slx.autosave
+*.slx.original
+*.mdl.autosave
+
+# Biến môi trường / cấu hình cục bộ - có thể chứa thông tin nhạy cảm
+.env
+.env.*
+!.env.example
+
+# Báo cáo do test sinh ra
+testresults/

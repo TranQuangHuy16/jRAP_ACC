@@ -1,0 +1,15 @@
+# File Simulink/MATLAB là binary - Git KHÔNG merge được.
+# Trước khi hai người cùng sửa một model, hãy thống nhất trước hoặc cấu hình
+# Simulink 3-way merge:  comparisons.ExternalSCMTool.setup('Git')
+*.slx           binary diff merge
+*.slx.r2025a    binary diff merge
+*.mdl           binary diff merge
+*.sldd          binary diff merge
+*.mat           binary diff merge
+*.mlx           binary diff merge
+*.slxc          binary diff merge
+
+# File text: Git lưu LF trong repo, checkout ra kiểu xuống dòng bản địa của
+# hệ điều hành. Tránh diff giả do lẫn CRLF/LF giữa các máy.
+*               text=auto
+*.bat           text eol=crlf
