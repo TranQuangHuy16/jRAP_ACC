@@ -440,14 +440,85 @@ trong workspace của hàm và tham số **không hề tới được base works
 hoạt động là nhờ `PostLoadFcn` của `ACC_Main` và `evalin` trong `AccScenarioTest` bù lại. Đã chuyển thành
 script.
 
+### 2026-07-27 — Đối chiếu với Product Backlog (quan trọng nhất)
+
+Sau khi đọc được Product Backlog thật, nhiều đánh giá trong bản review này phải sửa. **Bài học chung: bản
+review ban đầu suy ra "nợ kỹ thuật" từ mã nguồn, trong khi một phần trong đó là quyết định về phạm vi mà
+chỉ backlog mới trả lời được.**
+
+#### a) PBI-02 được đánh Done nhưng chưa đạt acceptance criteria
+
+Acceptance của PBI-02 *"Động học của xe"*: **"Có xét đến khối lượng xe"**. Model trước đây tính gia tốc
+bằng `throttle × 2` — khối lượng không đóng vai trò gì. Đã sửa thành `a = F/m`:
+
+```
+acceleration            Gain: a_throttle_mps2 -> F_engine_max/m  (3000/1500 = 2 m/s²)
+Brake Deceleration Gain Gain: a_brake_mps2    -> F_brake_max/m   (3000/1500 = 2 m/s²)
+```
+
+Giá trị không đổi nên hành vi và toàn bộ số liệu test giữ nguyên, nhưng khối lượng nay xuất hiện đúng chỗ
+trong công thức. Lưu ý: lực cản gió vẫn **không** được mô phỏng — backlog không yêu cầu.
+
+#### b) Cảm biến khoảng cách không nằm trong backlog
+
+Backlog chỉ có **PBI-01 → PBI-20, không có PBI-21**. Nhưng repo có `ProximitySensor_Module`, đèn nháy,
+tiếng bíp, 4 scenario test gắn nhãn "PBI-21" và 2 commit `feat: added distance warning sensor`.
+
+Đây là tính năng làm ngoài backlog. Cần hoặc bổ sung PBI-21 vào sheet, hoặc ghi rõ đây là phần mở rộng tự
+chọn — nếu không thì đó là scope creep không truy vết được.
+
+#### c) Ba output `Obstacle*` là việc dở dang, không phải rác
+
+Sprint 1 đã gắn `Terminator` vào chúng với lý do "output chủ đích không dùng". **Sai.** PBI-05 ghi rõ
+*"Mô phỏng xe phía trước, xuất hiện, biến mất, phanh gấp **và vật cản**"*, và Task 13.12 yêu cầu
+*"Kiểm thử vật cản đứng yên... Kiểm tra **CollisionFlag** trong test scenario"*.
+
+Đã đổi tên 3 khối thành `TODO_PBI05_ObstaclePresent` / `_ObstacleSpeed` / `_ObstaclePosition` và thêm ghi
+chú ngay trên sơ đồ `ACC_Main`. `CollisionFlag` hiện chưa tồn tại ở bất kỳ đâu trong model.
+
+#### d) Cột Status của backlog đã lỗi thời
+
+| Trong sheet | Thực tế trong code |
+|---|---|
+| Done: PBI-01, 02, 03, 07, 10, 11 | — |
+| Trống: PBI-05, 06, 08, 09, 12, 13, 15, 16–20 | **Đều đã làm và test xanh** |
+
+Daily 22/7/2026 ghi Sprint 3 gồm PBI-05, 06, 12, 08, 09, 13, 20 — đúng những gì code đang có. Chỉ là sheet
+chưa được cập nhật. Đây là việc điền lại, không phải làm thêm.
+
+#### e) Những mục tôi tự áp tiêu chuẩn ngoài phạm vi — HUỶ, không phải hoãn
+
+Backlog không có dòng nào về sinh code nhúng, CI, hay compliance. Vì vậy S3.1 (fixed-step solver),
+S3.2 (CI), S3.3 (Model Advisor), S3.4 (coverage) đều **bị huỷ**, không phải hoãn. Việc xoá `Kp`/`Ki`/`Kd`
+thì giữ nguyên: không PBI nào yêu cầu PID, nó chỉ là mục tiêu học tập trong Product Goal.
+
+Nhóm cũng đã tự nhận ra vấn đề Scrum của mình và ghi trong sheet: *"PBI-16 đến PBI-20 thực chất không phải
+tính năng mà là kịch bản kiểm thử... nếu là dự án thực tế thì nên đưa vào Acceptance Criteria, DoD hoặc
+Test Cases"*.
+
+#### f) Một việc refactor vô tình hoàn thành acceptance
+
+PBI-12 yêu cầu *"**Có thể cấu hình** khoảng cách tối thiểu"*. Trước Sprint 2, `SafeDistance_m` là hằng số
+20 chôn trong `SpeedArbitration`. Sau khi nối thành `D_safe`, tiêu chí này mới thực sự đạt.
+
+#### g) Hai điểm chờ Product Owner xác nhận
+
+- **PBI-04** *"ACC OFF → Điều khiển chân ga thủ công"*: hạ tầng đã có (`ThrottleSelect`, `BrakeSelect`,
+  `ManualThrottle`, `ManualBrake`) nhưng `ACC_Enable` là khối `Constant = 1` nên không tắt được lúc chạy.
+- **PBI-15** yêu cầu 6 trạng thái *(MODE OFF, MODE ON, Cruising, Following, Braking, Emergency Braking)*,
+  Stateflow hiện có 5 *(Off, Cruising, Following, Braking, Emergency)*.
+
 ### 2026-07-27 — Đính chính: nhóm B bị huỷ, không phải hoãn
 
 Bản review ban đầu xếp `m`, `Cd`, `A`, `rho` vào "nhóm B — phải thêm khối mới nối được", tức là ngầm coi
 việc `VehicleDynamics_Module` không mô hình hoá lực cản gió là **một thiếu sót cần bù**.
 
-**Điều đó sai.** Product Owner xác nhận product backlog **không hề có yêu cầu nào về lực cản gió**. Mô hình
-gia tốc hằng số theo mức ga vì thế là thiết kế **đúng phạm vi**, không phải giản lược tạm thời. Nhóm B do
-đó bị **huỷ chứ không phải hoãn**, và bốn biến `m`, `Cd`, `A`, `rho` đã được xoá khỏi `acc_init_setup.m`.
+**Điều đó sai một phần.** Product backlog **không hề có yêu cầu nào về lực cản gió**, nên `Cd`, `A`, `rho`
+đã được xoá khỏi `acc_init_setup.m` và sẽ không quay lại.
+
+**Nhưng `m` thì khác:** PBI-02 yêu cầu rõ *"Có xét đến khối lượng xe"*, nên khối lượng đã được khôi phục và
+nối vào model qua công thức `a = F/m` — xem mục (a) ở trên. Lần xoá `m` là sai và đã được sửa trong cùng
+ngày.
 
 Ghi lại đây làm mốc: đề xuất "thêm lực cản gió cho thực tế hơn" sẽ là **mở rộng phạm vi ngoài backlog**,
 không phải sửa lỗi kỹ thuật.

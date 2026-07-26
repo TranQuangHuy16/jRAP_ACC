@@ -16,13 +16,16 @@ addpath(accRoot, fullfile(accRoot,'models'), fullfile(accRoot,'scripts'));
 clear accRoot
 
 %% Động học xe (VehicleDynamics_Module)
-% Gia tốc là hằng số theo mức ga, không phụ thuộc vận tốc. Đây là mô hình
-% ĐÚNG theo product backlog: backlog không có yêu cầu nào về lực cản gió,
-% nên model cố tình không mô phỏng nó. Vì vậy cũng không có khối lượng xe,
-% hệ số cản Cd, diện tích cản A hay mật độ không khí rho trong dự án này -
-% đừng thêm lại chúng nếu backlog không đổi.
-a_throttle_mps2 = 2;     % Gia tốc khi ga mở hết (m/s^2)
-a_brake_mps2 = 2;        % Giảm tốc khi phanh hết (m/s^2)
+% Gia tốc tính theo định luật II Newton: a = F/m. Đây là cách thoả tiêu chí
+% "Có xét đến khối lượng xe" của PBI-02.
+%
+% Lực là hằng số theo mức ga/phanh, KHÔNG phụ thuộc vận tốc: backlog không
+% có yêu cầu nào về lực cản gió, nên model cố tình không mô phỏng nó. Vì
+% vậy dự án không có hệ số cản Cd, diện tích cản A hay mật độ không khí rho
+% - đừng thêm chúng vào nếu backlog không đổi.
+m = 1500;                % Khối lượng xe (kg)
+F_engine_max = 3000;     % Lực kéo tối đa khi ga mở hết (N)  -> a = 2 m/s^2
+F_brake_max = 3000;      % Lực phanh tối đa khi phanh hết (N) -> a = 2 m/s^2
 
 %% Tốc độ đặt của người lái (DesiredSpeed_Module)
 v_cruise_kmh = 80;         % Tốc độ đặt ban đầu (km/h)

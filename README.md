@@ -148,8 +148,9 @@ Khai báo trong `scripts/acc_init_setup.m`:
 
 | Tham số | Giá trị | Ý nghĩa |
 |---|---|---|
-| `a_throttle_mps2` | 2 | Gia tốc khi ga mở hết (m/s²) |
-| `a_brake_mps2` | 2 | Giảm tốc khi phanh hết (m/s²) |
+| `m` | 1500 | Khối lượng xe (kg) |
+| `F_engine_max` | 3000 | Lực kéo tối đa khi ga mở hết (N) → `a = F/m` = 2 m/s² |
+| `F_brake_max` | 3000 | Lực phanh tối đa khi phanh hết (N) → 2 m/s² |
 | `v_cruise_kmh` | 80 | Tốc độ đặt ban đầu (km/h) |
 | `v_cruise_lowered_kmh` | 40 | Tốc độ đặt sau khi người lái hạ xuống ở t=12s (km/h) |
 | `speed_tolerance` | 0.5 | Vùng sai số cho phép quanh tốc độ đặt (km/h) |
@@ -161,7 +162,7 @@ Khai báo trong `scripts/acc_init_setup.m`:
 | `Sensor_FarRange_m` | 40 | Khoảng cách bắt đầu cảnh báo (m) |
 | `Sensor_NearRange_m` | 3 | Khoảng cách cảnh báo cường độ tối đa (m) |
 
-**Toàn bộ 12 tham số trên đều thực sự được model sử dụng** — sửa giá trị ở đây là đổi được hành vi.
+**Toàn bộ 13 tham số trên đều thực sự được model sử dụng** — sửa giá trị ở đây là đổi được hành vi.
 Kiểm chứng bằng:
 
 ```matlab
@@ -174,9 +175,23 @@ thật nằm hardcode trong khối.
 
 ### Phạm vi: những thứ dự án cố tình KHÔNG mô phỏng
 
-`VehicleDynamics_Module` cho gia tốc hằng số theo mức ga, không phụ thuộc vận tốc. Đây là **thiết kế đúng
-theo product backlog**, không phải mô hình đơn giản hoá chờ hoàn thiện: backlog không có yêu cầu nào về lực
-cản gió. Vì vậy dự án không có khối lượng xe, `Cd`, `A` hay `rho` — **đừng thêm lại nếu backlog không đổi**.
+`VehicleDynamics_Module` tính gia tốc theo `a = F/m`, trong đó lực là hằng số theo mức ga/phanh và **không
+phụ thuộc vận tốc**. Đây là **thiết kế đúng theo product backlog**, không phải mô hình đơn giản hoá chờ
+hoàn thiện:
+
+- **Có** khối lượng xe — PBI-02 yêu cầu rõ *"Có xét đến khối lượng xe"*.
+- **Không** có lực cản gió — backlog không có yêu cầu nào về nó. Vì vậy dự án không có `Cd`, `A`, `rho`, và
+  xe không có tốc độ tới hạn. **Đừng thêm vào nếu backlog không đổi.**
+- **Không** có bộ điều khiển PID — không PBI nào yêu cầu. `SpeedController` và `BrakeController` là điều
+  khiển đóng-mở. PID chỉ xuất hiện trong Product Goal như một mục tiêu học tập.
+- **Không** hướng tới sinh code nhúng — nên không dùng fixed-step solver, không có CI, không đo coverage.
+
+### Việc còn dở dang đã biết
+
+**PBI-05 (phần vật cản tĩnh).** `LeadVehicle_Module` có sẵn 3 output `ObstaclePresent`, `ObstacleSpeed_kmh`,
+`ObstaclePosition_m` nhưng chưa nối vào hệ thống. Chúng đang tạm chạy vào 3 khối `TODO_PBI05_*` trong
+`ACC_Main` (kèm ghi chú ngay trên sơ đồ) để `model_check` không báo động giả. Task 13.12 của backlog còn
+yêu cầu một tín hiệu `CollisionFlag` — tín hiệu này **hiện chưa tồn tại ở bất kỳ đâu trong model**.
 
 ---
 
