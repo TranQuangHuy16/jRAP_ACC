@@ -1,4 +1,13 @@
 % --- acc_init_setup.m ---
+% Nạp tham số môi trường ACC vào base workspace.
+%
+% Tự bảo đảm models/ và scripts/ nằm trên MATLAB path, để script này chạy
+% được cả khi người dùng gọi trực tiếp mà chưa qua startup.m. Thiếu bước
+% này, các khối Model-reference trong ACC_Main không resolve được.
+accRoot = fileparts(fileparts(mfilename('fullpath')));
+addpath(accRoot, fullfile(accRoot,'models'), fullfile(accRoot,'scripts'));
+clear accRoot
+
 % Thông số Động học xe (Vehicle Dynamics)
 m = 1500;       % Khối lượng xe (kg)
 Cd = 0.32;      % Hệ số cản gió
@@ -21,6 +30,13 @@ Kd = 0;
 
 % --- Tham số Speed Controller
 speed_tolerance = 0.5;   % Vùng sai số cho phép (km/h)
+
+% --- Tham số khối SpeedArbitration (trọng tài giữa tốc độ đặt và tốc độ bám) ---
+% Tốc độ bám an toàn = LeadSpeed + blend*(DesiredSpeed - LeadSpeed) - k_closing*ClosingSpeed
+% trong đó blend tăng tuyến tính từ 0 (đúng khoảng cách an toàn) tới 1
+% (cách xe trước D_safe + D_followBlend_m mét thì bám hẳn tốc độ đặt).
+D_followBlend_m = 60;    % Khoảng cách vượt trên D_safe để trả hết về tốc độ đặt (m)
+k_closing = 0.5;         % Hệ số trừ theo tốc độ tiếp cận (km/h giảm trên mỗi km/h tiếp cận)
 
 % --- Tham số cảm biến khoảng cách phía trước (Proximity Sensor) ---
 Sensor_FarRange_m = 40;   % Khoảng cách bắt đầu kêu (m)

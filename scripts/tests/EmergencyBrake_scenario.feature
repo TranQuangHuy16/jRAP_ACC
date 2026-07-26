@@ -1,6 +1,6 @@
 # --- front-matter:toml ---
 model = "ACC_Main.slx"
-component = "ACC_Main/Model8"
+component = "ACC_Main/EmergencyBrake"
 [inputs]
 LeadPresent = "LeadPresent"
 Distance = "ActualDistance_m"
