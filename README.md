@@ -186,12 +186,12 @@ hoàn thiện:
   khiển đóng-mở. PID chỉ xuất hiện trong Product Goal như một mục tiêu học tập.
 - **Không** hướng tới sinh code nhúng — nên không dùng fixed-step solver, không có CI, không đo coverage.
 
-### Việc còn dở dang đã biết
+### Ba output `Obstacle*` của LeadVehicle
 
-**PBI-05 (phần vật cản tĩnh).** `LeadVehicle_Module` có sẵn 3 output `ObstaclePresent`, `ObstacleSpeed_kmh`,
-`ObstaclePosition_m` nhưng chưa nối vào hệ thống. Chúng đang tạm chạy vào 3 khối `TODO_PBI05_*` trong
-`ACC_Main` (kèm ghi chú ngay trên sơ đồ) để `model_check` không báo động giả. Task 13.12 của backlog còn
-yêu cầu một tín hiệu `CollisionFlag` — tín hiệu này **hiện chưa tồn tại ở bất kỳ đâu trong model**.
+`LeadVehicle_Module` có 3 output `ObstaclePresent`, `ObstacleSpeed_kmh`, `ObstaclePosition_m` không nối vào
+hệ thống, đang chạy vào `Terminator`. PBI-05 yêu cầu *"Mô phỏng xe **or** vật cản phía trước"* — vế "xe" đã
+được `LeadVehicle_Module` đáp ứng, nên PBI-05 hoàn thành. Ba output này là phần mở rộng để ngỏ, không phải
+việc còn nợ.
 
 ---
 

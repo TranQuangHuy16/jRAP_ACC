@@ -467,14 +467,25 @@ tiếng bíp, 4 scenario test gắn nhãn "PBI-21" và 2 commit `feat: added dis
 Đây là tính năng làm ngoài backlog. Cần hoặc bổ sung PBI-21 vào sheet, hoặc ghi rõ đây là phần mở rộng tự
 chọn — nếu không thì đó là scope creep không truy vết được.
 
-#### c) Ba output `Obstacle*` là việc dở dang, không phải rác
+#### c) Ba output `Obstacle*` — báo động giả của tôi, PBI-05 đã xong
 
-Sprint 1 đã gắn `Terminator` vào chúng với lý do "output chủ đích không dùng". **Sai.** PBI-05 ghi rõ
-*"Mô phỏng xe phía trước, xuất hiện, biến mất, phanh gấp **và vật cản**"*, và Task 13.12 yêu cầu
-*"Kiểm thử vật cản đứng yên... Kiểm tra **CollisionFlag** trong test scenario"*.
+Tôi từng cho rằng việc gắn `Terminator` vào 3 output này là "che một việc chưa xong", vì PBI-05 có nhắc tới
+vật cản. **Sai hai lần:**
 
-Đã đổi tên 3 khối thành `TODO_PBI05_ObstaclePresent` / `_ObstacleSpeed` / `_ObstaclePosition` và thêm ghi
-chú ngay trên sơ đồ `ACC_Main`. `CollisionFlag` hiện chưa tồn tại ở bất kỳ đâu trong model.
+1. Tiêu đề PBI-05 là *"Mô phỏng xe **or** vật cản phía trước"* — chữ **or**. Vế "xe" đã được
+   `LeadVehicle_Module` đáp ứng đầy đủ (xuất hiện, biến mất, phanh gấp, tăng tốc rời đi), nên PBI-05 hoàn
+   thành. Ba output `Obstacle*` là phần mở rộng để ngỏ, không phải nợ.
+2. Tôi khẳng định *"`CollisionFlag` không tồn tại ở bất kỳ đâu trong model"* — **sai**. Nó là inport `u6`
+   của `Throttle_and_UI_Module`, nhận tín hiệu từ output thứ 3 của `DistanceCalculation` và có Display
+   riêng. Tôi kết luận mà chưa đọc module đó.
+
+Đã gỡ ghi chú sai khỏi sơ đồ `ACC_Main` và trả 3 khối về tên `Term_Lead_*`.
+
+#### c2) PBI-14 cũng đạt acceptance
+
+`Throttle_and_UI_Module` hiển thị: Speed (km/h), DesiredSpeed, **LeadSpeed**, Distance, Throttle, Brake,
+Acceleration, CollisionFlag, kèm 3 Scope. Đối chiếu acceptance *"Hiển thị tốc độ hiện tại - tốc độ mong
+muốn - tốc độ xe phía trước - khoảng cách bám theo - cập nhật theo thời gian thực"*: đủ cả.
 
 #### d) Cột Status của backlog đã lỗi thời
 
